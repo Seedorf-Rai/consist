@@ -6,8 +6,10 @@ import type {
   GroupDetail,
   MemberSummary,
   MyGroupSummary,
+  OtpMessageResponse,
   PendingValidation,
   ResolutionResult,
+  SignupResponse,
   Task,
   TodayBoard,
   User,
@@ -16,9 +18,13 @@ import type {
 /* ---------------- Auth ---------------- */
 
 export const api = {
-  auth: {
+ auth: {
     signup: (name: string, email: string, password: string) =>
-      http.post<AuthResponse>("/auth/signup", { name, email, password }, false),
+      http.post<SignupResponse>("/auth/signup", { name, email, password }, false),
+    verifyEmail: (email: string, otp: string) =>
+      http.post<AuthResponse>("/auth/verify-email", { email, otp }, false),
+    resendOtp: (email: string) =>
+      http.post<OtpMessageResponse>("/auth/resend-otp", { email }, false),
     login: (email: string, password: string) =>
       http.post<AuthResponse>("/auth/login", { email, password }, false),
     logout: () => http.post<void>("/auth/logout"),

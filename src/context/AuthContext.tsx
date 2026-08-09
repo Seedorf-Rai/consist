@@ -6,8 +6,12 @@ interface AuthContextValue {
   user: User | null;
   initializing: boolean;
   error: string | null;
+  pendingVerificationEmail: string | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
+  verifyOtp: (email: string, otp: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
+  cancelVerification: () => void;
   logout: () => void;
   clearError: () => void;
 }
@@ -18,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -39,6 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(res.token);
       setUser(res.user);
     } catch (err) {
+      // Backend returns 403 "Please verify your email before logging in." for unverified accounts —
+      // send them to the OTP screen instead of just showing a generic error.
+      if (err instanceof ApiError && err.status === 403) {
+        setPendingVerificationEmail(email);
+      }
       setError(err instanceof ApiError ? err.message : "Login failed.");
       throw err;
     }
@@ -48,12 +58,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       const res = await api.auth.signup(name, email, password);
-      setToken(res.token);
-      setUser(res.user);
+      setPendingVerificationEmail(res.email);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Sign up failed.");
       throw err;
     }
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, otp: string) => {
+    setError(null);
+    try {
+      const res = await api.auth.verifyEmail(email, otp);
+      setToken(res.token);
+      setUser(res.user);
+      setPendingVerificationEmail(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Verification failed.");
+      throw err;
+    }
+  }, []);
+
+  const resendOtp = useCallback(async (email: string) => {
+    setError(null);
+    try {
+      await api.auth.resendOtp(email);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not resend code.");
+      throw err;
+    }
+  }, []);
+
+  const cancelVerification = useCallback(() => {
+    setPendingVerificationEmail(null);
+    setError(null);
   }, []);
 
   const logout = useCallback(() => {
@@ -65,7 +102,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearError = useCallback(() => setError(null), []);
 
   return (
-    <AuthContext.Provider value={{ user, initializing, error, login, signup, logout, clearError }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        initializing,
+        error,
+        pendingVerificationEmail,
+        login,
+        signup,
+        verifyOtp,
+        resendOtp,
+        cancelVerification,
+        logout,
+        clearError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

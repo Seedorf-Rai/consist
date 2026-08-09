@@ -11,6 +11,7 @@ import { MyTasksScreen } from "./screens/MyTasksScreen";
 import { ValidateScreen } from "./screens/ValidateScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
 import { AdminScreen } from "./screens/AdminScreen";
+import { VerifyOtpScreen } from "./screens/VerifyOtp";
 
 type Screen =
   | "groups"
@@ -100,7 +101,7 @@ function AuthenticatedApp() {
 }
 
 function Gate() {
-  const { user, initializing } = useAuth();
+  const { user, initializing , pendingVerificationEmail  } = useAuth();
 
   if (initializing) {
     return (
@@ -109,7 +110,7 @@ function Gate() {
       </Shell>
     );
   }
-
+  if (pendingVerificationEmail) return <VerifyOtpScreen email={pendingVerificationEmail} />
   if (!user) return <LoginScreen />;
 
   return <AuthenticatedApp />;

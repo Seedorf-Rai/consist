@@ -112,3 +112,12 @@ export interface ResolutionResult {
 export interface ApiErrorBody {
   error: string;
 }
+
+export interface SignupResponse {
+  message: string;
+  email: string;
+}
+
+export interface OtpMessageResponse {
+  message: string;
+}
