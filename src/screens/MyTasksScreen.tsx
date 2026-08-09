@@ -1,6 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Camera, Plus } from "lucide-react";
-import { Btn, Card, CenteredNote, ErrorBanner, Header, Shell, Spinner, StatusChip } from "../components/ui";
+import {
+  Btn,
+  Card,
+  CenteredNote,
+  ErrorBanner,
+  Header,
+  Shell,
+  Spinner,
+  StatusChip,
+} from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_BODY } from "../theme";
 import { api, ApiError } from "../lib/api";
@@ -31,7 +40,11 @@ export function MyTasksScreen({
     api.tasks
       .myTasks(groupId)
       .then(setTasks)
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load your tasks."));
+      .catch((err) =>
+        setError(
+          err instanceof ApiError ? err.message : "Failed to load your tasks.",
+        ),
+      );
   }, [groupId]);
 
   useEffect(() => {
@@ -46,7 +59,10 @@ export function MyTasksScreen({
       setTitle("");
       load();
     } catch (err) {
-      flash(err instanceof ApiError ? err.message : "Could not add the task.", "error");
+      flash(
+        err instanceof ApiError ? err.message : "Could not add the task.",
+        "error",
+      );
     } finally {
       setAdding(false);
     }
@@ -77,14 +93,23 @@ export function MyTasksScreen({
               fontFamily: FONT_BODY,
             }}
           />
-          <Btn variant="gold" disabled={!title.trim()} loading={adding} onClick={addTask}>
+          <Btn
+            variant="gold"
+            disabled={!title.trim()}
+            loading={adding}
+            onClick={addTask}
+          >
             <Plus size={14} /> Add
           </Btn>
         </div>
       </Card>
 
       {!tasks && !error && <Spinner />}
-      {tasks && tasks.length === 0 && <CenteredNote>No tasks yet — add at least one to be in today's pact.</CenteredNote>}
+      {tasks && tasks.length === 0 && (
+        <CenteredNote>
+          No tasks yet — add at least one to be in today's pact.
+        </CenteredNote>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {tasks?.map((t) => (
@@ -104,20 +129,43 @@ function TaskRow({
   onSubmitted: () => void;
   flash: (msg: string, type?: "ok" | "error") => void;
 }) {
-  const [ss, setSs] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [desc, setDesc] = useState("");
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const approvedCount = task.validations.filter((v) => v.decision === "approved").length;
+  const [link, setLink] = useState<string | null>(null);
+  const approvedCount = task.validations.filter(
+    (v) => v.decision === "approved",
+  ).length;
+  const canSubmit = task.status === "draft" || task.status === "rejected";
+
+  useEffect(() => {
+    if (
+      task.status === "submitted" ||
+      task.status === "approved" ||
+      task.status === "rejected"
+    ) {
+      api.tasks
+        .screenshotUrl(task.id)
+        .then(setLink)
+        .catch(() => {});
+    }
+  }, [task.id, task.status]);
 
   const submit = async () => {
+    if (!file) return;
     setSubmitting(true);
     try {
-      await api.tasks.submit(task.id, ss.trim(), desc.trim());
+      await api.tasks.submit(task.id, file, desc.trim());
       setOpen(false);
+      setFile(null);
+      setDesc("");
       onSubmitted();
     } catch (err) {
-      flash(err instanceof ApiError ? err.message : "Could not submit evidence.", "error");
+      flash(
+        err instanceof ApiError ? err.message : "Could not submit evidence.",
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -125,27 +173,79 @@ function TaskRow({
 
   return (
     <Card>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
         <div style={{ fontSize: 14, fontWeight: 600 }}>{task.title}</div>
         <StatusChip status={toBoardStatus(task)} />
       </div>
+
       {task.status === "submitted" && (
         <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>
           {approvedCount}/{task.validations.length} approved
+          {link && (
+            <>
+              {" · "}
+              <a
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: C.text }}
+              >
+                View evidence
+              </a>
+            </>
+          )}
         </div>
       )}
-      {task.status === "draft" && (
+
+      {task.status === "rejected" && !open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 11, color: C.textFaint }}>
+            This task was rejected.
+            {link && (
+              <>
+                {" · "}
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: C.text }}
+                >
+                  View previous evidence
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {canSubmit && (
         <div style={{ marginTop: 10 }}>
           {!open ? (
             <Btn variant="gold" onClick={() => setOpen(true)}>
-              <Camera size={13} /> Submit evidence
+              <Camera size={13} />{" "}
+              {task.status === "rejected"
+                ? "Resubmit evidence"
+                : "Submit evidence"}
             </Btn>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                marginTop: 8,
+              }}
+            >
               <input
-                placeholder="Screenshot URL"
-                value={ss}
-                onChange={(e) => setSs(e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 style={{
                   background: C.bgHatch,
                   border: `1px solid ${C.border}`,
@@ -172,8 +272,15 @@ function TaskRow({
                   resize: "vertical",
                 }}
               />
-              <Btn variant="gold" disabled={!ss.trim() || !desc.trim()} loading={submitting} onClick={submit}>
-                Submit for validation
+              <Btn
+                variant="gold"
+                disabled={!file || !desc.trim()}
+                loading={submitting}
+                onClick={submit}
+              >
+                {task.status === "rejected"
+                  ? "Resubmit for validation"
+                  : "Submit for validation"}
               </Btn>
             </div>
           )}

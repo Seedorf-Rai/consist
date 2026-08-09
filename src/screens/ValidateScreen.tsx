@@ -61,25 +61,7 @@ export function ValidateScreen({
             </div>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{p.title}</div>
             {p.evidence && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: C.textDim,
-                  background: C.bgHatch,
-                  borderRadius: 8,
-                  padding: 10,
-                  marginBottom: 10,
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "flex-start",
-                }}
-              >
-                <Camera size={13} style={{ marginTop: 1, flexShrink: 0 }} />
-                <div>
-                  <div style={{ fontStyle: "italic", wordBreak: "break-all" }}>{p.evidence.screenshot_url}</div>
-                  <div style={{ marginTop: 3 }}>{p.evidence.description}</div>
-                </div>
-              </div>
+              <EvidenceBlock taskId={p.task_id} description={p.evidence.description} />
             )}
             <div style={{ display: "flex", gap: 8 }}>
               <Btn
@@ -101,5 +83,82 @@ export function ValidateScreen({
         ))}
       </div>
     </Shell>
+  );
+}
+
+function EvidenceBlock({ taskId, description }: { taskId: string; description: string }) {
+  const [link, setLink] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.tasks
+      .screenshotUrl(taskId)
+      .then((url) => {
+        if (!cancelled) setLink(url);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [taskId]);
+
+  return (
+    <div
+      style={{
+        fontSize: 12,
+        color: C.textDim,
+        background: C.bgHatch,
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 10,
+        display: "flex",
+        gap: 10,
+        alignItems: "flex-start",
+      }}
+    >
+      {link ? (
+        <a href={link} target="_blank" rel="noreferrer" style={{ flexShrink: 0 }}>
+          <img
+            src={link}
+            alt="Evidence"
+            style={{
+              width: 56,
+              height: 56,
+              objectFit: "cover",
+              borderRadius: 6,
+              border: `1px solid ${C.border}`,
+              display: "block",
+            }}
+          />
+        </a>
+      ) : (
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 6,
+            border: `1px solid ${C.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Camera size={16} style={{ opacity: 0.4 }} />
+        </div>
+      )}
+      <div>
+        {failed && <div style={{ fontStyle: "italic", color: C.textFaint }}>Could not load evidence link</div>}
+        {link && (
+          <a href={link} target="_blank" rel="noreferrer" style={{ color: C.text, fontStyle: "italic" }}>
+            View full size
+          </a>
+        )}
+        <div style={{ marginTop: 3 }}>{description}</div>
+      </div>
+    </div>
   );
 }

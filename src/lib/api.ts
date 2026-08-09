@@ -1,4 +1,4 @@
-import { http } from "./http";
+import { ApiError, getToken, http } from "./http";
 import type {
   AuthResponse,
   BalanceLogEntry,
@@ -48,15 +48,46 @@ export const api = {
   },
 
   tasks: {
-    
+
     create: (groupId: string, title: string) => http.post<Task>(`/groups/${groupId}/tasks`, { title }),
     myTasks: (groupId: string, day?: string) =>
       http.get<Task[]>(`/groups/${groupId}/tasks/me`, day ? { day } : undefined),
     tasksFor: (groupId: string, userId: string, day?: string) =>
       http.get<Task[]>(`/groups/${groupId}/tasks/${userId}`, day ? { day } : undefined),
     get: (taskId: string) => http.get<Task>(`/tasks/${taskId}`),
-    submit: (taskId: string, screenshot_url: string, description: string) =>
-      http.post<Task>(`/tasks/${taskId}/submit`, { screenshot_url, description }),
+    submit: async (taskId: string, file: File, description: string) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("description", description);
+
+      const token = getToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tasks/${taskId}/submit`, {
+        method: "POST",
+        headers, // don't set Content-Type — browser sets the multipart boundary itself
+        body: form,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new ApiError(res.status, body.error || "Submit failed");
+      }
+      return res.json();
+    },
+
+    screenshotUrl: async (taskId: string): Promise<string> => {
+      const token = getToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/tasks/${taskId}/screenshot`, {
+        headers,
+      });
+      if (!res.ok) throw new ApiError(res.status, "Could not load evidence link");
+      const data = await res.json();
+      return data.url;
+    },
     validate: (taskId: string, decision: "approve" | "reject") =>
       http.post<Task>(`/tasks/${taskId}/validate`, { decision }),
     pendingValidations: (groupId: string) =>
