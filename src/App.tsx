@@ -12,6 +12,8 @@ import { ValidateScreen } from "./screens/ValidateScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
 import { AdminScreen } from "./screens/AdminScreen";
 import { VerifyOtpScreen } from "./screens/VerifyOtp";
+import PactUserManual from "./screens/Manual";
+import { HelpCircle } from "lucide-react";
 
 type Screen =
   | "groups"
@@ -101,19 +103,60 @@ function AuthenticatedApp() {
 }
 
 function Gate() {
-  const { user, initializing , pendingVerificationEmail  } = useAuth();
+  const { user, initializing, pendingVerificationEmail } = useAuth();
+  const [showManual, setShowManual] = useState(false);
 
-  if (initializing) {
-    return (
-      <Shell>
-        <Spinner label="Checking your session…" />
-      </Shell>
-    );
-  }
-  if (pendingVerificationEmail) return <VerifyOtpScreen email={pendingVerificationEmail} />
-  if (!user) return <LoginScreen />;
+  const content = (() => {
+    if (initializing) {
+      return (
+        <Shell>
+          <Spinner label="Checking your session…" />
+        </Shell>
+      );
+    }
+    if (pendingVerificationEmail) return <VerifyOtpScreen email={pendingVerificationEmail} />;
+    if (!user) return <LoginScreen />;
+    return <AuthenticatedApp />;
+  })();
 
-  return <AuthenticatedApp />;
+  return (
+    <>
+      {content}
+
+      {/* Reachable from any screen, logged in or not */}
+      {!showManual && (
+        <button
+          onClick={() => setShowManual(true)}
+          aria-label="Open user manual"
+          style={{
+            position: "fixed",
+            bottom: 20,
+            right: 20,
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: "#1B2126",
+            border: "1px solid #323C43",
+            color: "#C9A961",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+            zIndex: 40,
+          }}
+        >
+          <HelpCircle size={20} />
+        </button>
+      )}
+
+      {showManual && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, overflowY: "auto", background: "#12161A" }}>
+          <PactUserManual onClose={() => setShowManual(false)} />
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function App() {
