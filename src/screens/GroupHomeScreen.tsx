@@ -1,81 +1,45 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { CheckCircle2, Eye, ListChecks, Shield, Wallet, Flame } from "lucide-react";
 import { Btn, Card, ErrorBanner, Header, Seal, Shell, Spinner, StatusChip } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_DISPLAY, FONT_MONO } from "../theme";
-import { api, ApiError } from "../lib/api";
+import { ApiError } from "../lib/api";
+import { useGroupHome, useLeaveGroup, useResolveDay } from "../queries/groups";
 import { useAuth } from "../context/AuthContext";
-import type { GroupDetail, MemberSummary, TodayBoard } from "../types";
+import { useFlash } from "../routes/RootLayout";
 
-export function GroupHomeScreen({
-  groupId,
-  onBack,
-  onOpenAdmin,
-  onOpenBalances,
-  onOpenMyTasks,
-  onOpenValidate,
-  onLeft,
-  flash,
-}: {
-  groupId: string;
-  onBack: () => void;
-  onOpenAdmin: () => void;
-  onOpenBalances: () => void;
-  onOpenMyTasks: () => void;
-  onOpenValidate: () => void;
-  onLeft: () => void;
-  flash: (msg: string, type?: "ok" | "error") => void;
-}) {
+export function GroupHomeScreen() {
+  const { groupId = "" } = useParams();
+  const navigate = useNavigate();
+  const flash = useFlash();
   const { user } = useAuth();
-  const [detail, setDetail] = useState<GroupDetail | null>(null);
-  const [members, setMembers] = useState<MemberSummary[] | null>(null);
-  const [board, setBoard] = useState<TodayBoard | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [resolving, setResolving] = useState(false);
-  const [leaving, setLeaving] = useState(false);
 
-  const load = useCallback(() => {
-    setError(null);
-    Promise.all([api.groups.detail(groupId), api.groups.members(groupId), api.groups.today(groupId)])
-      .then(([d, m, b]) => {
-        setDetail(d);
-        setMembers(m);
-        setBoard(b);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load this group."));
-  }, [groupId]);
+  const { detail, members, board, error, refetchAll } = useGroupHome(groupId);
+  const resolveDay = useResolveDay(groupId);
+  const leaveGroup = useLeaveGroup(groupId);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const resolveDay = async () => {
-    setResolving(true);
+  const runResolveDay = async () => {
     try {
-      const result = await api.groups.resolveDay(groupId);
+      const result = await resolveDay.mutateAsync(undefined);
       const successNames = result.results
         .filter((r) => r.day_success)
-        .map((r) => members?.find((m) => m.user_id === r.user_id)?.name || r.user_id)
+        .map((r) => members.data?.find((m) => m.user_id === r.user_id)?.name || r.user_id)
         .join(", ");
       flash(`Day resolved. Succeeded: ${successNames || "no one"}.`);
-      load();
+      refetchAll();
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not resolve the day.", "error");
-    } finally {
-      setResolving(false);
     }
   };
 
-  const leaveGroup = async () => {
-    setLeaving(true);
+  const runLeaveGroup = async () => {
     try {
-      await api.groups.leave(groupId);
+      await leaveGroup.mutateAsync();
       flash("You left the group.");
-      onLeft();
+      navigate("/");
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not leave the group.", "error");
-    } finally {
-      setLeaving(false);
     }
   };
 
@@ -83,13 +47,13 @@ export function GroupHomeScreen({
     return (
       <Shell wide>
         <TopBar />
-        <Header title="Group" onBack={onBack} />
-        <ErrorBanner message={error} />
+        <Header title="Group" onBack={() => navigate("/")} />
+        <ErrorBanner message={error instanceof ApiError ? error.message : "Failed to load this group."} />
       </Shell>
     );
   }
 
-  if (!detail || !members || !board || !user) {
+  if (!detail.data || !members.data || !board.data || !user) {
     return (
       <Shell wide>
         <TopBar />
@@ -98,24 +62,28 @@ export function GroupHomeScreen({
     );
   }
 
-  const isAdmin = detail.admin.id === user.id;
-  const myMember = members.find((m) => m.user_id === user.id);
-  const allDone = board.board.every((b) => b.status === "approved" || b.status === "rejected");
+  const groupDetail = detail.data;
+  const groupMembers = members.data;
+  const groupBoard = board.data;
+
+  const isAdmin = groupDetail.admin.id === user.id;
+  const myMember = groupMembers.find((m) => m.user_id === user.id);
+  const allDone = groupBoard.board.every((b) => b.status === "approved" || b.status === "rejected");
 
   return (
     <Shell wide>
       <TopBar />
       <Header
-        title={detail.name}
-        onBack={onBack}
+        title={groupDetail.name}
+        onBack={() => navigate("/")}
         right={
           <div style={{ display: "flex", gap: 8 }}>
             {isAdmin && (
-              <Btn variant="ghost" onClick={onOpenAdmin}>
+              <Btn variant="ghost" onClick={() => navigate(`/groups/${groupId}/admin`)}>
                 <Shield size={14} /> Admin
               </Btn>
             )}
-            <Btn variant="ghost" onClick={onOpenBalances}>
+            <Btn variant="ghost" onClick={() => navigate(`/groups/${groupId}/balances`)}>
               <Wallet size={14} /> Balances
             </Btn>
           </div>
@@ -125,14 +93,14 @@ export function GroupHomeScreen({
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
         <Card style={{ flex: 1, minWidth: 140, textAlign: "center" }}>
           <div style={{ fontSize: 11, color: C.textFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>Day</div>
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 700 }}>{detail.current_day}</div>
+          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 700 }}>{groupDetail.current_day}</div>
         </Card>
         <Card style={{ flex: 1, minWidth: 140, textAlign: "center" }}>
           <div style={{ fontSize: 11, color: C.textFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>
             Daily Stake
           </div>
           <div style={{ fontFamily: FONT_MONO, fontSize: 26, fontWeight: 700, color: C.gold }}>
-            ₹{detail.daily_stake}
+            ₹{groupDetail.daily_stake}
           </div>
         </Card>
         <Card style={{ flex: 1, minWidth: 140, textAlign: "center" }}>
@@ -158,8 +126,8 @@ export function GroupHomeScreen({
         Today's Board
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
-        {board.board.map((b) => {
-          const m = members.find((x) => x.user_id === b.user_id);
+        {groupBoard.board.map((b) => {
+          const m = groupMembers.find((x) => x.user_id === b.user_id);
           return (
             <Card key={b.user_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -183,7 +151,7 @@ export function GroupHomeScreen({
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>
                     {b.name} {b.user_id === user.id && <span style={{ color: C.textFaint, fontWeight: 400 }}>(you)</span>}
-                    {b.user_id === detail.admin.id && (
+                    {b.user_id === groupDetail.admin.id && (
                       <Shield size={11} color={C.gold} style={{ marginLeft: 5, display: "inline" }} />
                     )}
                   </div>
@@ -199,23 +167,23 @@ export function GroupHomeScreen({
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Btn variant="gold" onClick={onOpenMyTasks} disabled={detail.resolved_today}>
+        <Btn variant="gold" onClick={() => navigate(`/groups/${groupId}/tasks`)} disabled={groupDetail.resolved_today}>
           <ListChecks size={15} /> My Tasks Today
         </Btn>
-        <Btn onClick={onOpenValidate} disabled={detail.resolved_today}>
+        <Btn onClick={() => navigate(`/groups/${groupId}/validate`)} disabled={groupDetail.resolved_today}>
           <Eye size={15} /> Validate Others
         </Btn>
-        {isAdmin && !detail.resolved_today && (
-          <Btn variant={allDone ? "green" : "ghost"} onClick={resolveDay} disabled={!allDone} loading={resolving}>
-            <CheckCircle2 size={15} /> Resolve Day {detail.current_day}
+        {isAdmin && !groupDetail.resolved_today && (
+          <Btn variant={allDone ? "green" : "ghost"} onClick={runResolveDay} disabled={!allDone} loading={resolveDay.isPending}>
+            <CheckCircle2 size={15} /> Resolve Day {groupDetail.current_day}
           </Btn>
         )}
-        {isAdmin && !detail.resolved_today && !allDone && (
+        {isAdmin && !groupDetail.resolved_today && !allDone && (
           <span style={{ fontSize: 11, color: C.textFaint, alignSelf: "center" }}>
             Waiting on everyone to finish validation before the day can resolve.
           </span>
         )}
-        <Btn variant="ghost" onClick={leaveGroup} loading={leaving} style={{ marginLeft: "auto" }}>
+        <Btn variant="ghost" onClick={runLeaveGroup} loading={leaveGroup.isPending} style={{ marginLeft: "auto" }}>
           Leave Group
         </Btn>
       </div>

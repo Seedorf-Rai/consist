@@ -18,7 +18,7 @@ import type {
 /* ---------------- Auth ---------------- */
 
 export const api = {
- auth: {
+  auth: {
     signup: (name: string, email: string, password: string) =>
       http.post<SignupResponse>("/auth/signup", { name, email, password }, false),
     verifyEmail: (email: string, otp: string) =>
@@ -54,7 +54,6 @@ export const api = {
   },
 
   tasks: {
-
     create: (groupId: string, title: string) => http.post<Task>(`/groups/${groupId}/tasks`, { title }),
     myTasks: (groupId: string, day?: string) =>
       http.get<Task[]>(`/groups/${groupId}/tasks/me`, day ? { day } : undefined),

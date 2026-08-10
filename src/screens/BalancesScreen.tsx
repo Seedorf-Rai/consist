@@ -1,66 +1,49 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Coins } from "lucide-react";
 import { Btn, Card, CenteredNote, ErrorBanner, Header, Shell, Spinner } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_MONO } from "../theme";
-import { api, ApiError } from "../lib/api";
-import type { BalanceLogEntry, BalanceSummary } from "../types";
+import { ApiError } from "../lib/api";
+import { useBalanceLog, useMyBalance, useRedeemBalance } from "../queries/balances";
+import { useGroupDetail } from "../queries/groups";
+import { useFlash } from "../routes/RootLayout";
 
-export function BalancesScreen({
-  groupId,
-  groupName,
-  onBack,
-  flash,
-}: {
-  groupId: string;
-  groupName: string;
-  onBack: () => void;
-  flash: (msg: string, type?: "ok" | "error") => void;
-}) {
-  const [summary, setSummary] = useState<BalanceSummary | null>(null);
-  const [log, setLog] = useState<BalanceLogEntry[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [redeemingId, setRedeemingId] = useState<string | null>(null);
+export function BalancesScreen() {
+  const { groupId = "" } = useParams();
+  const navigate = useNavigate();
+  const flash = useFlash();
 
-  const load = useCallback(() => {
-    setError(null);
-    Promise.all([api.balances.mine(groupId), api.balances.log(groupId)])
-      .then(([s, l]) => {
-        setSummary(s);
-        setLog(l);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load balances."));
-  }, [groupId]);
+  // Group name isn't in the URL, so pull it from the group detail query —
+  // it's already cached from GroupHomeScreen most of the time.
+  const { data: detail } = useGroupDetail(groupId);
+  const { data: summary, error, isLoading } = useMyBalance(groupId);
+  const { data: log } = useBalanceLog(groupId);
+  const redeem = useRedeemBalance(groupId);
 
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const redeem = async (logId: string) => {
-    setRedeemingId(logId);
+  const runRedeem = async (logId: string) => {
     try {
-      await api.balances.redeem(logId);
+      await redeem.mutateAsync(logId);
       flash("Marked as redeemed.");
-      load();
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not redeem this entry.", "error");
-    } finally {
-      setRedeemingId(null);
     }
   };
 
   return (
     <Shell>
       <TopBar />
-      <Header title="Balances" onBack={onBack} />
+      <Header title="Balances" onBack={() => navigate(`/groups/${groupId}`)} />
 
-      {error && <ErrorBanner message={error} />}
-      {!summary && !error && <Spinner />}
+      {error && (
+        <ErrorBanner message={error instanceof ApiError ? error.message : "Failed to load balances."} />
+      )}
+      {isLoading && !error && <Spinner />}
 
       {summary && (
         <Card style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ fontSize: 11, color: C.textFaint, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            Your balance in {groupName}
+            Your balance in {detail?.name ?? "this group"}
           </div>
           <div
             style={{
@@ -114,7 +97,11 @@ export function BalancesScreen({
                     Redeemed
                   </span>
                 ) : owedToMe ? (
-                  <Btn variant="gold" loading={redeemingId === l.id} onClick={() => redeem(l.id)}>
+                  <Btn
+                    variant="gold"
+                    loading={redeem.isPending && redeem.variables === l.id}
+                    onClick={() => runRedeem(l.id)}
+                  >
                     <Coins size={12} /> Redeem
                   </Btn>
                 ) : (

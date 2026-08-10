@@ -4,8 +4,11 @@ import { Btn, Card, ErrorBanner, Input, Shell } from "../components/ui";
 import { C, FONT_DISPLAY } from "../theme";
 import { useAuth } from "../context/AuthContext";
 
-export function VerifyOtpScreen({ email }: { email: string }) {
-  const { verifyOtp, resendOtp, cancelVerification } = useAuth();
+export function VerifyOtpScreen() {
+  const { pendingVerificationEmail, verifyOtp, resendOtp, cancelVerification } = useAuth();
+  // PublicOnly guards this route so pendingVerificationEmail is always set
+  // by the time we render — the fallback just keeps TypeScript happy.
+  const email = pendingVerificationEmail ?? "";
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
