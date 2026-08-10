@@ -6,7 +6,7 @@ import { queryClient } from "./queryClient";
 import { AuthProvider } from "./context/AuthContext";
 import { router } from "./router";
 import "./index.css";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
