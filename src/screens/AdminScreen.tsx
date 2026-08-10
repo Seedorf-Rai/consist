@@ -1,84 +1,59 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Shield, Trash2 } from "lucide-react";
 import { Btn, Card, ErrorBanner, Header, Shell, Spinner } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_MONO } from "../theme";
-import { api, ApiError } from "../lib/api";
-import type { GroupDetail, MemberSummary } from "../types";
+import { ApiError } from "../lib/api";
+import { useDeleteGroup, useGroupDetail, useGroupMembers, useKickMember, useSetStake } from "../queries/groups";
+import { useFlash } from "../routes/RootLayout";
 
 const STAKES = [100, 200, 500];
 
-export function AdminScreen({
-  groupId,
-  onBack,
-  onDeleted,
-  flash,
-}: {
-  groupId: string;
-  onBack: () => void;
-  onDeleted: () => void;
-  flash: (msg: string, type?: "ok" | "error") => void;
-}) {
-  const [detail, setDetail] = useState<GroupDetail | null>(null);
-  const [members, setMembers] = useState<MemberSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function AdminScreen() {
+  const { groupId = "" } = useParams();
+  const navigate = useNavigate();
+  const flash = useFlash();
+
+  const { data: detail, error: detailError } = useGroupDetail(groupId);
+  const { data: members, error: membersError } = useGroupMembers(groupId);
+  const error = detailError || membersError;
+
   const [stakeDraft, setStakeDraft] = useState<number | null>(null);
-  const [savingStake, setSavingStake] = useState(false);
-  const [kickingId, setKickingId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const load = useCallback(() => {
-    setError(null);
-    Promise.all([api.groups.detail(groupId), api.groups.members(groupId)])
-      .then(([d, m]) => {
-        setDetail(d);
-        setMembers(m);
-        setStakeDraft((prev) => prev ?? d.daily_stake);
-      })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load admin panel."));
-  }, [groupId]);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    if (detail && stakeDraft === null) setStakeDraft(detail.daily_stake);
+  }, [detail, stakeDraft]);
+
+  const setStake = useSetStake(groupId);
+  const kickMember = useKickMember(groupId);
+  const deleteGroup = useDeleteGroup(groupId);
 
   const saveStake = async () => {
     if (stakeDraft === null) return;
-    setSavingStake(true);
     try {
-      await api.groups.setStake(groupId, stakeDraft);
+      await setStake.mutateAsync(stakeDraft);
       flash("Daily stake updated.");
-      load();
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not update the stake.", "error");
-    } finally {
-      setSavingStake(false);
     }
   };
 
   const kick = async (userId: string, name: string) => {
-    setKickingId(userId);
     try {
-      await api.groups.kick(groupId, userId);
+      await kickMember.mutateAsync(userId);
       flash(`${name} was removed from the group.`);
-      load();
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not remove this member.", "error");
-    } finally {
-      setKickingId(null);
     }
   };
 
-  const deleteGroup = async () => {
-    setDeleting(true);
+  const runDeleteGroup = async () => {
     try {
-      await api.groups.delete(groupId);
+      await deleteGroup.mutateAsync();
       flash("Group deleted.");
-      onDeleted();
+      navigate("/");
     } catch (err) {
       flash(err instanceof ApiError ? err.message : "Could not delete the group.", "error");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -86,8 +61,8 @@ export function AdminScreen({
     return (
       <Shell>
         <TopBar />
-        <Header title="Admin Panel" onBack={onBack} />
-        <ErrorBanner message={error} />
+        <Header title="Admin Panel" onBack={() => navigate(`/groups/${groupId}`)} />
+        <ErrorBanner message={error instanceof ApiError ? error.message : "Failed to load admin panel."} />
       </Shell>
     );
   }
@@ -104,7 +79,7 @@ export function AdminScreen({
   return (
     <Shell>
       <TopBar />
-      <Header title="Admin Panel" onBack={onBack} />
+      <Header title="Admin Panel" onBack={() => navigate(`/groups/${groupId}`)} />
 
       <Card style={{ marginBottom: 16 }}>
         <div
@@ -140,7 +115,7 @@ export function AdminScreen({
             </button>
           ))}
         </div>
-        <Btn variant="gold" full disabled={stakeDraft === detail.daily_stake} loading={savingStake} onClick={saveStake}>
+        <Btn variant="gold" full disabled={stakeDraft === detail.daily_stake} loading={setStake.isPending} onClick={saveStake}>
           Save Stake
         </Btn>
       </Card>
@@ -165,7 +140,11 @@ export function AdminScreen({
                 {m.name} {m.role === "admin" && <Shield size={11} color={C.gold} style={{ marginLeft: 5, display: "inline" }} />}
               </span>
               {m.role !== "admin" && (
-                <Btn variant="red" loading={kickingId === m.user_id} onClick={() => kick(m.user_id, m.name)}>
+                <Btn
+                  variant="red"
+                  loading={kickMember.isPending && kickMember.variables === m.user_id}
+                  onClick={() => kick(m.user_id, m.name)}
+                >
                   <Trash2 size={12} /> Kick
                 </Btn>
               )}
@@ -192,7 +171,7 @@ export function AdminScreen({
             ? "You can only delete this group once every member (including you) has left or been removed."
             : "You're the last member — deleting now removes the group for good."}
         </div>
-        <Btn variant="red" full disabled={members.length > 1} loading={deleting} onClick={deleteGroup}>
+        <Btn variant="red" full disabled={members.length > 1} loading={deleteGroup.isPending} onClick={runDeleteGroup}>
           <Trash2 size={14} /> Delete Group
         </Btn>
       </Card>

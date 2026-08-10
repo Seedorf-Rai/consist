@@ -1,41 +1,35 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Btn, Card, ErrorBanner, Header, Input, Shell } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_BODY, FONT_MONO } from "../theme";
-import { api, ApiError } from "../lib/api";
+import { ApiError } from "../lib/api";
+import { useCreateGroup } from "../queries/groups";
 
 const STAKES = [100, 200, 500];
 
-export function CreateGroupScreen({
-  onBack,
-  onCreated,
-}: {
-  onBack: () => void;
-  onCreated: (groupId: string, name: string) => void;
-}) {
+export function CreateGroupScreen() {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [stake, setStake] = useState(100);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const createGroup = useCreateGroup();
 
   const submit = async () => {
     setError(null);
-    setSubmitting(true);
     try {
-      const res = await api.groups.create(name.trim(), password.trim(), stake);
-      onCreated(res.id, res.name);
+      const res = await createGroup.mutateAsync({ name: name.trim(), password: password.trim(), dailyStake: stake });
+      navigate(`/groups/${res.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not create the group.");
-    } finally {
-      setSubmitting(false);
     }
   };
 
   return (
     <Shell>
       <TopBar />
-      <Header title="Create a Group" onBack={onBack} />
+      <Header title="Create a Group" onBack={() => navigate("/")} />
       <Card>
         {error && <ErrorBanner message={error} />}
         <Input label="Group name" placeholder="e.g. Grind Squad" value={name} onChange={(e) => setName(e.target.value)} />
@@ -86,7 +80,7 @@ export function CreateGroupScreen({
           variant="gold"
           full
           disabled={!name.trim() || !password.trim()}
-          loading={submitting}
+          loading={createGroup.isPending}
           onClick={submit}
         >
           Create Group & Become Admin

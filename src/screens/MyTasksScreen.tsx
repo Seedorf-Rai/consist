@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Camera, Plus } from "lucide-react";
 import {
   Btn,
@@ -12,7 +13,9 @@ import {
 } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_BODY } from "../theme";
-import { api, ApiError } from "../lib/api";
+import { ApiError } from "../lib/api";
+import { useCreateTask, useMyTasks, useScreenshotUrl, useSubmitTask } from "../queries/tasks";
+import { useFlash } from "../routes/RootLayout";
 import type { BoardStatus, Task } from "../types";
 
 function toBoardStatus(t: Task): BoardStatus {
@@ -21,59 +24,33 @@ function toBoardStatus(t: Task): BoardStatus {
   return t.status;
 }
 
-export function MyTasksScreen({
-  groupId,
-  onBack,
-  flash,
-}: {
-  groupId: string;
-  onBack: () => void;
-  flash: (msg: string, type?: "ok" | "error") => void;
-}) {
-  const [tasks, setTasks] = useState<Task[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+export function MyTasksScreen() {
+  const { groupId = "" } = useParams();
+  const navigate = useNavigate();
+  const flash = useFlash();
+
+  const { data: tasks, error, isLoading } = useMyTasks(groupId);
   const [title, setTitle] = useState("");
-  const [adding, setAdding] = useState(false);
-
-  const load = useCallback(() => {
-    setError(null);
-    api.tasks
-      .myTasks(groupId)
-      .then(setTasks)
-      .catch((err) =>
-        setError(
-          err instanceof ApiError ? err.message : "Failed to load your tasks.",
-        ),
-      );
-  }, [groupId]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const createTask = useCreateTask(groupId);
 
   const addTask = async () => {
     if (!title.trim()) return;
-    setAdding(true);
     try {
-      await api.tasks.create(groupId, title.trim());
+      await createTask.mutateAsync(title.trim());
       setTitle("");
-      load();
     } catch (err) {
-      flash(
-        err instanceof ApiError ? err.message : "Could not add the task.",
-        "error",
-      );
-    } finally {
-      setAdding(false);
+      flash(err instanceof ApiError ? err.message : "Could not add the task.", "error");
     }
   };
 
   return (
     <Shell>
       <TopBar />
-      <Header title="My Tasks — Today" onBack={onBack} />
+      <Header title="My Tasks — Today" onBack={() => navigate(`/groups/${groupId}`)} />
 
-      {error && <ErrorBanner message={error} />}
+      {error && (
+        <ErrorBanner message={error instanceof ApiError ? error.message : "Failed to load your tasks."} />
+      )}
 
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 8 }}>
@@ -93,27 +70,20 @@ export function MyTasksScreen({
               fontFamily: FONT_BODY,
             }}
           />
-          <Btn
-            variant="gold"
-            disabled={!title.trim()}
-            loading={adding}
-            onClick={addTask}
-          >
+          <Btn variant="gold" disabled={!title.trim()} loading={createTask.isPending} onClick={addTask}>
             <Plus size={14} /> Add
           </Btn>
         </div>
       </Card>
 
-      {!tasks && !error && <Spinner />}
+      {isLoading && !error && <Spinner />}
       {tasks && tasks.length === 0 && (
-        <CenteredNote>
-          No tasks yet — add at least one to be in today's pact.
-        </CenteredNote>
+        <CenteredNote>No tasks yet — add at least one to be in today's pact.</CenteredNote>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {tasks?.map((t) => (
-          <TaskRow key={t.id} task={t} onSubmitted={load} flash={flash} />
+          <TaskRow key={t.id} task={t} flash={flash} />
         ))}
       </div>
     </Shell>
@@ -122,64 +92,36 @@ export function MyTasksScreen({
 
 function TaskRow({
   task,
-  onSubmitted,
   flash,
 }: {
   task: Task;
-  onSubmitted: () => void;
   flash: (msg: string, type?: "ok" | "error") => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [desc, setDesc] = useState("");
   const [open, setOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
-  const approvedCount = task.validations.filter(
-    (v) => v.decision === "approved",
-  ).length;
+  const approvedCount = task.validations.filter((v) => v.decision === "approved").length;
   const canSubmit = task.status === "draft" || task.status === "rejected";
+  const wantsLink = task.status === "submitted" || task.status === "approved" || task.status === "rejected";
 
-  useEffect(() => {
-    if (
-      task.status === "submitted" ||
-      task.status === "approved" ||
-      task.status === "rejected"
-    ) {
-      api.tasks
-        .screenshotUrl(task.id)
-        .then(setLink)
-        .catch(() => {});
-    }
-  }, [task.id, task.status]);
+  const { data: link } = useScreenshotUrl(task.id, wantsLink);
+  const submitTask = useSubmitTask(task.group_id);
 
   const submit = async () => {
     if (!file) return;
-    setSubmitting(true);
     try {
-      await api.tasks.submit(task.id, file, desc.trim());
+      await submitTask.mutateAsync({ taskId: task.id, file, description: desc.trim() });
       setOpen(false);
       setFile(null);
       setDesc("");
-      onSubmitted();
     } catch (err) {
-      flash(
-        err instanceof ApiError ? err.message : "Could not submit evidence.",
-        "error",
-      );
-    } finally {
-      setSubmitting(false);
+      flash(err instanceof ApiError ? err.message : "Could not submit evidence.", "error");
     }
   };
 
   return (
     <Card>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>{task.title}</div>
         <StatusChip status={toBoardStatus(task)} />
       </div>
@@ -190,12 +132,7 @@ function TaskRow({
           {link && (
             <>
               {" · "}
-              <a
-                href={link}
-                target="_blank"
-                rel="noreferrer"
-                style={{ color: C.text }}
-              >
+              <a href={link} target="_blank" rel="noreferrer" style={{ color: C.text }}>
                 View evidence
               </a>
             </>
@@ -210,12 +147,7 @@ function TaskRow({
             {link && (
               <>
                 {" · "}
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ color: C.text }}
-                >
+                <a href={link} target="_blank" rel="noreferrer" style={{ color: C.text }}>
                   View previous evidence
                 </a>
               </>
@@ -228,20 +160,10 @@ function TaskRow({
         <div style={{ marginTop: 10 }}>
           {!open ? (
             <Btn variant="gold" onClick={() => setOpen(true)}>
-              <Camera size={13} />{" "}
-              {task.status === "rejected"
-                ? "Resubmit evidence"
-                : "Submit evidence"}
+              <Camera size={13} /> {task.status === "rejected" ? "Resubmit evidence" : "Submit evidence"}
             </Btn>
           ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 8,
-                marginTop: 8,
-              }}
-            >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
               <input
                 type="file"
                 accept="image/*"
@@ -272,15 +194,8 @@ function TaskRow({
                   resize: "vertical",
                 }}
               />
-              <Btn
-                variant="gold"
-                disabled={!file || !desc.trim()}
-                loading={submitting}
-                onClick={submit}
-              >
-                {task.status === "rejected"
-                  ? "Resubmit for validation"
-                  : "Submit for validation"}
+              <Btn variant="gold" disabled={!file || !desc.trim()} loading={submitTask.isPending} onClick={submit}>
+                {task.status === "rejected" ? "Resubmit for validation" : "Submit for validation"}
               </Btn>
             </div>
           )}

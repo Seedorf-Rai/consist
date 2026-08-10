@@ -1,43 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Shield, Users } from "lucide-react";
 import { Btn, Card, ErrorBanner, Header, Seal, Shell, Spinner } from "../components/ui";
 import { TopBar } from "../components/TopBar";
 import { C, FONT_DISPLAY } from "../theme";
-import { api, ApiError } from "../lib/api";
-import type { MyGroupSummary } from "../types";
+import { ApiError } from "../lib/api";
+import { useMyGroups } from "../queries/groups";
 
-export function GroupsScreen({
-  onOpenGroup,
-  onCreateGroup,
-  onJoinGroup,
-  refreshKey,
-}: {
-  onOpenGroup: (groupId: string) => void;
-  onCreateGroup: () => void;
-  onJoinGroup: () => void;
-  refreshKey: number;
-}) {
-  const [groups, setGroups] = useState<MyGroupSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setError(null);
-    api.groups
-      .mine()
-      .then((g) => !cancelled && setGroups(g))
-      .catch((err) => !cancelled && setError(err instanceof ApiError ? err.message : "Failed to load groups."));
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshKey]);
+export function GroupsScreen() {
+  const navigate = useNavigate();
+  const { data: groups, error, isLoading } = useMyGroups();
 
   return (
     <Shell>
       <TopBar />
       <Header title="My Groups" />
-      {error && <ErrorBanner message={error} />}
-      {!groups && !error && <Spinner label="Loading your groups…" />}
+      {error && (
+        <ErrorBanner message={error instanceof ApiError ? error.message : "Failed to load groups."} />
+      )}
+      {isLoading && !error && <Spinner label="Loading your groups…" />}
 
       {groups && groups.length === 0 && (
         <Card style={{ textAlign: "center", color: C.textDim, marginBottom: 20 }}>
@@ -50,7 +31,7 @@ export function GroupsScreen({
           {groups.map((g) => (
             <Card key={g.id} style={{ cursor: "pointer" }}>
               <div
-                onClick={() => onOpenGroup(g.id)}
+                onClick={() => navigate(`/groups/${g.id}`)}
                 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -85,10 +66,10 @@ export function GroupsScreen({
       )}
 
       <div style={{ display: "flex", gap: 10 }}>
-        <Btn variant="gold" full onClick={onCreateGroup}>
+        <Btn variant="gold" full onClick={() => navigate("/groups/new")}>
           <Plus size={15} /> Create Group
         </Btn>
-        <Btn full onClick={onJoinGroup}>
+        <Btn full onClick={() => navigate("/groups/join")}>
           <Users size={15} /> Join Group
         </Btn>
       </div>

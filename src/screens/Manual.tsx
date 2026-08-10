@@ -5,10 +5,6 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, X,
 } from "lucide-react";
 
-/* ---------------------------------------------------------------------- */
-/*  TOKENS — matches the product's own dark / gold identity               */
-/* ---------------------------------------------------------------------- */
-
 const C = {
   bg: "#12161A",
   panel: "#1B2126",
@@ -40,10 +36,6 @@ function useGoogleFonts() {
     };
   }, []);
 }
-
-/* ---------------------------------------------------------------------- */
-/*  CONTENT                                                                */
-/* ---------------------------------------------------------------------- */
 
 interface Step {
   icon: React.ElementType;
@@ -150,10 +142,6 @@ const ADMIN: Step[] = [
       "Anyone can leave a group at any time; your balance history stays intact for whoever you still owe. A group itself can only be deleted once every member — including the admin — has left.",
   },
 ];
-
-/* ---------------------------------------------------------------------- */
-/*  UI PRIMITIVES                                                          */
-/* ---------------------------------------------------------------------- */
 
 function SectionLabel({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
@@ -307,10 +295,6 @@ function FAQItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-/* ---------------------------------------------------------------------- */
-/*  MAIN                                                                   */
-/* ---------------------------------------------------------------------- */
-
 export default function PactUserManual({ onClose }: { onClose?: () => void }) {
   useGoogleFonts();
 
@@ -326,7 +310,6 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
         padding: "0 0 80px",
       }}
     >
-      {/* HERO */}
       <div style={{ borderBottom: `1px solid ${C.borderFaint}`, padding: "56px 20px 44px", position: "relative" }}>
         {onClose && (
           <button
@@ -385,31 +368,26 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px" }}>
-        {/* GETTING STARTED */}
         <div style={{ paddingTop: 48 }}>
           <SectionLabel eyebrow="Getting started" title="Create your account and find your group" />
           <StepGroup steps={ONBOARDING} offset={0} />
         </div>
 
-        {/* DAILY CYCLE */}
         <div style={{ paddingTop: 48 }}>
           <SectionLabel eyebrow="Every day" title="The daily cycle" />
           <StepGroup steps={DAILY_CYCLE} offset={ONBOARDING.length} />
         </div>
 
-        {/* RESOLUTION */}
         <div style={{ paddingTop: 48 }}>
           <SectionLabel eyebrow="End of day" title="Resolution, balances, and streaks" />
           <StepGroup steps={RESOLUTION} offset={ONBOARDING.length + DAILY_CYCLE.length} />
         </div>
 
-        {/* ADMIN */}
         <div style={{ paddingTop: 48 }}>
           <SectionLabel eyebrow="Running a group" title="For group admins" />
           <StepGroup steps={ADMIN} offset={ONBOARDING.length + DAILY_CYCLE.length + RESOLUTION.length} />
         </div>
 
-        {/* QUICK REFERENCE CARD */}
         <div style={{ paddingTop: 56 }}>
           <SectionLabel eyebrow="Quick reference" title="Screens at a glance" />
           <div
@@ -447,7 +425,6 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
           </div>
         </div>
 
-        {/* FAQ */}
         <div style={{ paddingTop: 56 }}>
           <SectionLabel eyebrow="Good to know" title="Common questions" />
           <div style={{ borderTop: `1px solid ${C.borderFaint}` }}>
