@@ -3,6 +3,8 @@ import {
   Mail, ShieldCheck, Users, Coins, ListChecks, Camera, CheckCircle2,
   Eye, RefreshCcw, BellRing, Scale, Wallet, Flame, Settings, LogOut,
   AlertTriangle, ChevronDown, ChevronRight, X,
+  History,
+  Bell,
 } from "lucide-react";
 
 const C = {
@@ -104,6 +106,18 @@ const DAILY_CYCLE: Step[] = [
     body:
       "You'll get an email in the middle of the day and again in the evening if there's anything unfinished on your end — tasks not created, tasks not submitted, or other people's tasks waiting on your validation.",
   },
+  {
+    icon: History,
+    title: "Check your task history anytime",
+    body:
+      "Open History from your group's home screen to see every task you've created, filterable by date range. Anything left unresolved for more than 24 hours is flagged red — Completion missed if you never submitted it, Validation missed if it's still waiting on your group.",
+  },
+  {
+    icon: Eye,
+    title: "See what anyone else is up to",
+    body:
+      "Tap any member's card on Today's Board to open their tasks for the day — what they've submitted, and who's approved or rejected each one. Useful for following up before you validate, or just to see who's carrying the group.",
+  },
 ];
 
 const RESOLUTION: Step[] = [
@@ -140,6 +154,12 @@ const ADMIN: Step[] = [
     title: "Leaving and deleting a group",
     body:
       "Anyone can leave a group at any time; your balance history stays intact for whoever you still owe. A group itself can only be deleted once every member — including the admin — has left.",
+  },
+  {
+    icon: Bell,
+    title: "Nudge the group with a notification",
+    body:
+      "Admins can send a one-tap reminder to every member from Notify Group on the group home screen — useful late in the day when tasks or validations are still outstanding. Limited to once per hour per group, so use it when it'll actually move the needle.",
   },
 ];
 
@@ -401,11 +421,14 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
             {[
               ["My Groups", "Every group you're in, with your streak and balance in each."],
               ["Group Home / Today's Board", "See where everyone stands today, at a glance."],
+              ["Member Tasks", "Tap anyone on Today's Board to see their tasks and validators."],
               ["My Tasks Today", "Create today's tasks and attach evidence once they're done."],
+              ["History", "Every task you've created, filterable by date, with missed-task flags."],
               ["Validate Others", "Approve or reject tasks other members have submitted."],
               ["Balances", "Your net position in a group, plus a Redeem button for what's owed to you."],
               ["Balance Log", "Full history of who owed whom, and whether it's settled."],
               ["Admin Panel", "Change the stake, remove members, or delete the group."],
+              ["Admin Panel", "Change the stake, remove members, delete the group, or notify everyone."],
             ].map(([name, desc], i) => (
               <div
                 key={name}
@@ -448,6 +471,10 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
               q="What if I join a group partway through the day?"
               a="You'll be asked to validate any tasks that were already submitted and are still awaiting a decision from the rest of the group. Tasks from days before you joined aren't your concern."
             />
+            <FAQItem
+              q="Why can't the admin send another notification?"
+              a="Notifications are capped at one per hour per group to avoid spamming everyone's inbox. If the admin tries again too soon, they'll see how many minutes are left before the next one can go out."
+            />
           </div>
         </div>
 
@@ -464,6 +491,57 @@ export default function PactUserManual({ onClose }: { onClose?: () => void }) {
           }}
         >
           THE PACT — put money where your streak is.
+          <div
+            style={{
+              marginTop: 16,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 16,
+              fontFamily: FONT_BODY,
+              fontSize: 12,
+            }}
+          >
+            <a
+              href="https://www.instagram.com/see._.dorf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              style={{
+                color: C.textFaint,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="0.75" fill="currentColor" stroke="none" />
+              </svg>
+              Instagram
+            </a>
+
+            <a
+              href="https://www.linkedin.com/in/seedorf-rai-373689231/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LinkedIn"
+              style={{
+                color: C.textFaint,
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6.5 8.25A1.75 1.75 0 1 0 6.5 4.75a1.75 1.75 0 0 0 0 3.5ZM5 9.75h3v9.5H5v-9.5Zm4.75 0h2.88v1.3h.04c.4-.75 1.38-1.55 2.85-1.55 3.05 0 3.61 2.01 3.61 4.63v5.12h-3v-4.54c0-1.08-.02-2.47-1.5-2.47-1.5 0-1.73 1.17-1.73 2.39v4.62h-3v-9.5Z" />
+              </svg>
+              LinkedIn
+            </a>
+          </div>
         </div>
       </div>
     </div>
