@@ -244,15 +244,19 @@ export function GroupHomeScreen() {
         {groupBoard.board.map((b) => {
           const m = groupMembers.find((x) => x.user_id === b.user_id);
           return (
-            <Card
+            <div
               key={b.user_id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: 14,
-              }}
+              onClick={() => navigate(`/groups/${groupId}/members/${b.user_id}/tasks`)}
+              style={{ cursor: "pointer" }}
             >
+              <Card
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 14,
+                }}
+              >
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{
@@ -301,7 +305,8 @@ export function GroupHomeScreen() {
                 </div>
               </div>
               <StatusChip status={b.status} />
-            </Card>
+              </Card>
+            </div>
           );
         })}
       </div>

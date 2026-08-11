@@ -68,3 +68,11 @@ export function useMyTaskHistory(groupId: string, params: TaskHistoryParams) {
     placeholderData: (prev) => prev, // keep old page visible while next page loads
   });
 }
+export function usePerUserTasks(groupId: string, userId: string, page: number) {
+  return useQuery({
+    queryKey: qk.tasks.perUser(groupId, userId, page),
+    queryFn: () => api.tasks.perUser(groupId, userId, page),
+    enabled: !!groupId && !!userId,
+    placeholderData: (prev) => prev,
+  });
+}
