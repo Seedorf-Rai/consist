@@ -3,6 +3,7 @@ import { Navigate, Outlet, useOutletContext } from "react-router-dom";
 import { Shell, Spinner } from "../components/ui";
 import { useAuth } from "../context/AuthContext";
 import { Flash } from "./RootLayout";
+import { AnnouncementModal } from "../components/AnnouncementModal";
 
 export function RequireAuth() {
   const { user, initializing, pendingVerificationEmail } = useAuth();
@@ -18,5 +19,10 @@ export function RequireAuth() {
   if (pendingVerificationEmail) return <Navigate to="/verify" replace />;
   if (!user) return <Navigate to="/login" replace />;
 
-  return  <Outlet context={context} />;;
+  return (
+    <>
+      <AnnouncementModal />
+      <Outlet context={context} />
+    </>
+  );
 }

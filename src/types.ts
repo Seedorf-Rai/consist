@@ -174,3 +174,20 @@ export interface NotifyResponse {
   sent: number;
   failed: number;
 }
+
+export interface Announcement {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnouncementsListResponse {
+  announcements: Announcement[];
+  pagination: Pagination;
+}
+
+export interface MarkSeenResponse {
+  marked: number;
+}
