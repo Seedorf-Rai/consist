@@ -26,4 +26,8 @@ export const qk = {
     mine: (groupId: string) => ["balances", groupId, "mine"] as const,
     log: (groupId: string) => ["balances", groupId, "log"] as const,
   },
+  announcements: {
+    unseen: () => ["announcements", "unseen"] as const,
+    list: (page: number) => ["announcements", "list", page] as const,
+  },
 };

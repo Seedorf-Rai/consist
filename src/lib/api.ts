@@ -1,9 +1,12 @@
 import { ApiError, getToken, http } from "./http";
 import type {
+  Announcement,
+  AnnouncementsListResponse,
   AuthResponse,
   BalanceLogEntry,
   BalanceSummary,
   GroupDetail,
+  MarkSeenResponse,
   MemberSummary,
   MyGroupSummary,
   NotifyResponse,
@@ -116,6 +119,14 @@ export const api = {
     log: (groupId: string, userId = "me") =>
       http.get<BalanceLogEntry[]>(`/groups/${groupId}/balance-log`, { user_id: userId }),
     redeem: (logId: string) => http.post<BalanceLogEntry>(`/balance-log/${logId}/redeem`),
+  },
+  announcements: {
+    unseen: () => http.get<Announcement[]>("/announcements/unseen"),
+    markSeen: (announcementIds: string[]) =>
+      http.post<MarkSeenResponse>("/announcements/seen", { announcement_ids: announcementIds }),
+    markAllSeen: () => http.post<MarkSeenResponse>("/announcements/seen/all"),
+    list: (page = 1, pageSize = 20) =>
+      http.get<AnnouncementsListResponse>("/announcements", { page, pageSize }),
   },
 };
 
