@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { qk } from "./keys";
+import { TaskHistoryParams } from "../types";
 
 export function useMyTasks(groupId: string, day?: string) {
   return useQuery({
@@ -56,5 +57,14 @@ export function useValidateTask(groupId: string) {
       qc.invalidateQueries({ queryKey: qk.tasks.pendingValidations(groupId) });
       qc.invalidateQueries({ queryKey: qk.groups.today(groupId) });
     },
+  });
+}
+
+export function useMyTaskHistory(groupId: string, params: TaskHistoryParams) {
+  return useQuery({
+    queryKey: qk.tasks.history(groupId, params),
+    queryFn: () => api.tasks.myHistory(groupId, params),
+    enabled: !!groupId,
+    placeholderData: (prev) => prev, // keep old page visible while next page loads
   });
 }

@@ -16,6 +16,7 @@ import { MyTasksScreen } from "./screens/MyTasksScreen";
 import { ValidateScreen } from "./screens/ValidateScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
 import { AdminScreen } from "./screens/AdminScreen";
+import { HistoryScreen } from "./screens/HistoryScreen";
 
 // createBrowserRouter takes a plain array of route objects — nesting is just
 // objects with a `children` array. RootLayout renders <Outlet/> plus the
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
           { path: "/groups/:groupId/validate", element: <ValidateScreen /> },
           { path: "/groups/:groupId/balances", element: <BalancesScreen /> },
           { path: "/groups/:groupId/admin", element: <AdminScreen /> },
+          { path: "/groups/:groupId/history", element: <HistoryScreen /> }
         ],
       },
       // Reachable from any screen, logged in or not — matches the original
