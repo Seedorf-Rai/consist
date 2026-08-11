@@ -191,3 +191,18 @@ export interface AnnouncementsListResponse {
 export interface MarkSeenResponse {
   marked: number;
 }
+export interface PerUserTask {
+  id: string;
+  group_id: string;
+  userId: string;
+  date: string;
+  title: string;
+  status: TaskStatus;
+  submission: TaskHistorySubmission | null;
+  validations: TaskHistoryValidation[];
+}
+
+export interface PerUserTasksResponse {
+  tasks: PerUserTask[];
+  pagination: Pagination;
+}

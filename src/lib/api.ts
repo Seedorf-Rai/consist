@@ -12,6 +12,7 @@ import type {
   NotifyResponse,
   OtpMessageResponse,
   PendingValidation,
+  PerUserTasksResponse,
   ResolutionResult,
   SignupResponse,
   Task,
@@ -112,6 +113,8 @@ export const api = {
         page: params?.page,
         pageSize: params?.pageSize,
       }),
+      perUser: (groupId: string, userId: string, page = 1, pageSize = 20) =>
+      http.get<PerUserTasksResponse>(`/groups/perUser/${groupId}/tasks/${userId}`, { page, pageSize }),
   },
 
   balances: {

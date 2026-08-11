@@ -20,6 +20,8 @@ export const qk = {
     screenshot: (taskId: string) => ["tasks", taskId, "screenshot"] as const,
     history: (groupId: string, params: TaskHistoryParams) =>
       ["tasks", groupId, "history", params.startDate ?? null, params.endDate ?? null, params.page ?? 1, params.pageSize ?? 20] as const,
+    perUser: (groupId: string, userId: string, page: number) =>
+      ["tasks", groupId, "perUser", userId, page] as const,
   },
 
   balances: {
