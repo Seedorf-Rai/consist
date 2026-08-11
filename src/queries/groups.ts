@@ -110,3 +110,9 @@ export function useResolveDay(groupId: string) {
     },
   });
 }
+
+export function useNotifyGroup(groupId: string) {
+  return useMutation({
+    mutationFn: () => api.groups.notify(groupId),
+  });
+}

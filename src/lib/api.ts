@@ -6,11 +6,14 @@ import type {
   GroupDetail,
   MemberSummary,
   MyGroupSummary,
+  NotifyResponse,
   OtpMessageResponse,
   PendingValidation,
   ResolutionResult,
   SignupResponse,
   Task,
+  TaskHistoryParams,
+  TaskHistoryResponse,
   TodayBoard,
   User,
 } from "../types";
@@ -51,6 +54,8 @@ export const api = {
     detail: (id: string) => http.get<GroupDetail>(`/groups/${id}`),
     members: (id: string) => http.get<MemberSummary[]>(`/groups/${id}/members`),
     today: (id: string) => http.get<TodayBoard>(`/groups/${id}/today`),
+    notify: (id: string) => http.post<NotifyResponse>(`/groups/${id}/notify`),
+
   },
 
   tasks: {
@@ -97,6 +102,13 @@ export const api = {
       http.post<Task>(`/tasks/${taskId}/validate`, { decision }),
     pendingValidations: (groupId: string) =>
       http.get<PendingValidation[]>(`/groups/${groupId}/validations/pending`),
+    myHistory: (groupId: string, params?: TaskHistoryParams) =>
+      http.get<TaskHistoryResponse>(`/groups/${groupId}/tasks/me/history`, {
+        startDate: params?.startDate,
+        endDate: params?.endDate,
+        page: params?.page,
+        pageSize: params?.pageSize,
+      }),
   },
 
   balances: {

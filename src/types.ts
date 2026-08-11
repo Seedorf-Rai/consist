@@ -121,3 +121,56 @@ export interface SignupResponse {
 export interface OtpMessageResponse {
   message: string;
 }
+
+export interface TaskHistoryValidation {
+  id: string;
+  taskId: string;
+  validatorUserId: string;
+  decision: "pending" | "approved" | "rejected";
+  decidedAt: string | null;
+  validator: { id: string; name: string; email: string };
+}
+
+export interface TaskHistorySubmission {
+  id: string;
+  taskId: string;
+  screenshot_url: string;
+  description: string;
+  submittedAt: string;
+}
+
+export interface TaskHistoryItem {
+  id: string;
+  group_id: string;
+  userId: string;
+  date: string;
+  title: string;
+  status: TaskStatus;
+  createdAt: string;
+  updatedAt: string;
+  submission: TaskHistorySubmission | null;
+  validations: TaskHistoryValidation[];
+}
+
+export interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface TaskHistoryResponse {
+  tasks: TaskHistoryItem[];
+  pagination: Pagination;
+}
+
+export interface TaskHistoryParams {
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+export interface NotifyResponse {
+  sent: number;
+  failed: number;
+}
