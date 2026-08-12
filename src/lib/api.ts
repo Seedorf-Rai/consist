@@ -5,6 +5,7 @@ import type {
   AuthResponse,
   BalanceLogEntry,
   BalanceSummary,
+  ForgotPasswordResponse,
   GroupDetail,
   MarkSeenResponse,
   MemberSummary,
@@ -36,6 +37,10 @@ export const api = {
       http.post<AuthResponse>("/auth/login", { email, password }, false),
     logout: () => http.post<void>("/auth/logout"),
     me: () => http.get<User>("/me"),
+    forgotPassword: (email: string) =>
+      http.post<ForgotPasswordResponse>("/auth/forgot-password", { email }, false),
+    resetPassword: (email: string, otp: string, newPassword: string) =>
+      http.post<AuthResponse>("/auth/reset-password", { email, otp, newPassword }, false),
   },
 
   groups: {

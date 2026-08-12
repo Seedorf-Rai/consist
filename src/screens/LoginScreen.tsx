@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Btn, Card, ErrorBanner, Input, Shell } from "../components/ui";
 import { C, FONT_DISPLAY } from "../theme";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export function LoginScreen() {
   const { login, signup } = useAuth();
@@ -12,6 +13,7 @@ export function LoginScreen() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,17 @@ export function LoginScreen() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          {mode === "login" && (
+            <div style={{ textAlign: "right", marginTop: -8, marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                style={{ background: "none", border: "none", color: C.textDim, fontSize: 12, cursor: "pointer", padding: 0 }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
           <Btn variant="gold" full type="submit" loading={submitting} disabled={submitting}>
             {mode === "login" ? "Log in" : "Create account"} <ArrowRight size={14} />
           </Btn>

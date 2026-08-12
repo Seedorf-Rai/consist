@@ -206,3 +206,6 @@ export interface PerUserTasksResponse {
   tasks: PerUserTask[];
   pagination: Pagination;
 }
+export interface ForgotPasswordResponse {
+  message: string;
+}
