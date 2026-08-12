@@ -59,5 +59,22 @@ export function useLogout() {
     },
   });
 }
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (email: string) => api.auth.forgotPassword(email),
+  });
+}
+
+export function useResetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ email, otp, newPassword }: { email: string; otp: string; newPassword: string }) =>
+      api.auth.resetPassword(email, otp, newPassword),
+    onSuccess: (res) => {
+      setToken(res.token);
+      qc.setQueryData(qk.me(), res.user);
+    },
+  });
+}
 
 export { ApiError };

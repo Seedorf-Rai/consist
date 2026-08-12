@@ -18,6 +18,7 @@ import { BalancesScreen } from "./screens/BalancesScreen";
 import { AdminScreen } from "./screens/AdminScreen";
 import { HistoryScreen } from "./screens/HistoryScreen";
 import { MemberTasksScreen } from "./screens/MemberTaskScreen";
+import { ForgotPasswordScreen } from "./screens/ForgotPasswordScreen";
 
 // createBrowserRouter takes a plain array of route objects — nesting is just
 // objects with a `children` array. RootLayout renders <Outlet/> plus the
@@ -29,7 +30,9 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <PublicOnly />,
-        children: [{ path: "/login", element: <LoginScreen /> }],
+        children: [{ path: "/login", element: <LoginScreen /> } , 
+          { path: "/forgot-password", element: <ForgotPasswordScreen /> },
+        ],
       },
       {
         element: <PublicOnly requireVerificationPending />,
